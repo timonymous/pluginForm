@@ -8,8 +8,49 @@ Author URI: #
 Text Domain: wp-custom-plugin
 */
 
+register_activation_hook(__FILE__, 'custom_plugin_activate');
 
+function custom_plugin_activate() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'custom_data';
+    $charset_collate = $wpdb->get_charset_collate();
 
+    $sql = "CREATE TABLE $table_name (
+        id mediumint(9) NOT NULL AUTO_INCREMENT,
+        name varchar(255) NOT NULL,
+        PRIMARY KEY  (id)
+    ) $charset_collate;";
+
+    require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+    dbDelta( $sql );
+}
+
+function custom_plugin_enqueue_scripts() {
+    wp_enqueue_script('custom-plugin-script', plugin_dir_url(__FILE__) . 'script.js', array('jquery'), '1.0', true);
+}
+add_action('wp_enqueue_scripts', 'custom_plugin_enqueue_scripts');
+
+// Traitement du formulaire
+add_action('wp_ajax_handle_custom_form_submission', 'handle_custom_form_submission');
+function handle_custom_form_submission() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'custom_data';
+
+    $name = $_POST['name'];
+    $wpdb->insert(
+        $table_name,
+        array(
+            'name' => $name,
+        )
+    );
+
+    wp_die();
+}
+
+function load_font_awesome() {
+    wp_enqueue_style('font-awesome', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css');
+}
+add_action('wp_enqueue_scripts', 'load_font_awesome');
 
 function load_less_compiler() {
     wp_enqueue_script('less-js', 'https://cdnjs.cloudflare.com/ajax/libs/less.js/3.12.2/less.min.js', array(), '3.12.2', true);
